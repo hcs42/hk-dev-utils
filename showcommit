@@ -1,0 +1,138 @@
+#!/usr/bin/python
+
+# Usage:
+#
+# showcommit <commit>
+
+from __future__ import with_statement
+import re
+import os
+import tempfile
+import sys
+import subprocess
+
+
+class FileModification(object):
+    
+    def __init__(self, mod_type, filename):
+        self.mod_type = mod_type
+        self.filename = filename
+
+    def __str__(self):
+        return ('<FileModification: ' +
+                'mod_type=' + self.mod_type + ', '
+                'filename=' + self.filename + '>')
+
+    def __lt__(self, other):
+        return self.filename < other.filename
+
+def call(command):
+    return subprocess.Popen(command, stdout=subprocess.PIPE).communicate()[0]
+
+def call_to_tempfile(command):
+    f, tmpfilename = tempfile.mkstemp()
+    subprocess.Popen(command, stdout=f)
+    os.close(f)
+    return tmpfilename
+
+def file_to_string(file_name, return_none=False):
+    """Reads a file's content into a string.
+
+    **Arguments:**
+
+    - `file_name` (str) -- Path to the file.
+    - `return_none` (bool) -- Specifies what to do if the file does not exist.
+      If `return_none` is ``True``, ``None`` will be returned. Otherwise an
+      `IOError` exception will be raised.
+
+    **Returns:** str | ``None``
+    """
+
+    if return_none and not os.path.exists(file_name):
+        return None
+    with open(file_name, 'r') as f:
+        s = f.read()
+    return s
+
+def string_to_file(s, file_name):
+    """Writes a string to a file.
+
+    The old content of the file will be overwritten.
+
+    **Arguments:**
+
+    - `s` (str)
+    - `file_name` (str)
+    """
+
+    with open(file_name, 'w') as f:
+        f.write(s)
+
+def get_modified_files(commit1, commit2):
+    modified_files = []
+    git_diff_tree = call(['git', 'diff-tree', commit1, commit2])
+    for line in git_diff_tree.split('\n'):
+        line = line.strip()
+        if line == '':
+            continue
+        modification_to_file_regexp = \
+            re.compile(r'\S+\s+'
+                       r'\S+\s+'
+                       r'\S+\s+'
+                       r'\S+\s+'
+                       r'(?P<mod_type>\S+)\s+'
+                       r'(?P<filename>\S+)')
+        m = modification_to_file_regexp.match(line)
+        mod_type = m.group('mod_type')
+        filename = m.group('filename')
+        modified_files.append(FileModification(mod_type, filename))
+    return modified_files
+
+def create_file_version(filename, commit):
+    command = ['git', 'show', commit + ':' + filename]
+    return call_to_tempfile(command)
+
+def create_diff_file(file_modification, commit1, commit2):
+    mod_type = file_modification.mod_type
+    filename = file_modification.filename
+    if mod_type == 'M':
+        tmpfilename1 = create_file_version(filename, commit1)
+        tmpfilename2 = create_file_version(filename, commit2)
+        command = ['diff', '-U', '9999', tmpfilename1, tmpfilename2]
+        diff_file_name = call_to_tempfile(command)
+        os.remove(tmpfilename1)
+        os.remove(tmpfilename2)
+        diff_content = file_to_string(diff_file_name)
+        three_lines = re.compile(r'(.*\n){3}', re.MULTILINE)
+        diff_content = \
+            (mod_type + ' ' + filename + '\n\n' +
+             re.sub(three_lines, '', diff_content, 1))
+        string_to_file(diff_content, diff_file_name)
+        return diff_file_name
+    else:
+        print 'Unknown modification type: %s, file: %s' % (mod_type, filename)
+
+def main(commit):
+    commit_parent = commit + '^'
+    modified_files = sorted(get_modified_files(commit_parent, commit))
+    diff_files = \
+        [create_diff_file(file_modification, commit_parent, commit)
+         for file_modification in modified_files]
+    print diff_files
+    command = (['gvim', '-f',
+                     '-c', 'argdo set ft=python',
+                     '-c' ,'syntax on',
+                     '-c', 'argdo syntax match x1 \'^+\' | '
+                           'hi x1 guifg=blue gui=bold | '
+                           'syntax match x2 \'^-\' | '
+                           'hi x2 guifg=red gui=bold',
+                     '-c', 'noremap <S-F1> gg/^[+-][^+-]<cr>',
+                     '-c', 'noremap <F1> /^[+-][^+-]<cr>',
+                     '-c', 'noremap <F2> :bd!<cr>']
+                     + (['-c', 'first'] if len(diff_files) > 1 else []) +
+                     diff_files)
+    #print command
+    subprocess.call(command)
+
+if __name__ == '__main__':
+    main(sys.argv[1])
