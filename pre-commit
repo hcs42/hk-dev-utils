@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# Git commit hook that checks that there are no source files that contain
+# trailing whitespace or too long lines. (rst files may contain too long lines,
+# Python files may not.)
+
+tmp=`tempfile`
+pythonfiles=`git-ls-files | grep py`
+
+grep -n " $" *.py doc/*.{rst,py,hrst} > "$tmp"
+if [ "`cat $tmp`" != "" ]
+then
+    echo "pre-commit: No commit made."
+    echo "There is a trailing whitespace:"
+    echo
+    cat "$tmp"
+    exit 1
+fi
+
+grep -n ".\{80\}" $pythonfiles | grep -v 'http://' > "$tmp"
+if [ "`cat $tmp`" != "" ]
+then
+    echo "pre-commit: No commit made."
+    echo "There is Python code that is longer than 80 lines:"
+    echo
+    cat "$tmp"
+    exit 1
+fi
+
+rm "$tmp"
