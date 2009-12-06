@@ -6,25 +6,41 @@
 
 tmp=`tempfile`
 pythonfiles=`git-ls-files | grep py`
+error_file=`tempfile`
 
-grep -n " $" *.py doc/*.{rst,py,hrst} > "$tmp"
-if [ "`cat $tmp`" != "" ]
+function check_trailing_whitespace
+{
+    grep -n " $" *.py doc/*.{rst,py,hrst} > "$tmp"
+    if [ "`cat $tmp`" != "" ]
+    then
+        echo
+        echo "There is a trailing whitespace:"
+        echo
+        cat "$tmp"
+    fi
+}
+
+function check_long_lines
+{
+    grep -n ".\{82\}" $pythonfiles | grep -v 'http://' > "$tmp"
+    if [ "`cat $tmp`" != "" ]
+    then
+        echo
+        echo "There is Python code that is longer than 80 lines:"
+        echo
+        cat "$tmp"
+    fi
+}
+
+check_trailing_whitespace >> "$error_file"
+check_long_lines >> "$error_file"
+
+if [ "$(cat $error_file)" != "" ]
 then
     echo "pre-commit: No commit made."
-    echo "There is a trailing whitespace:"
-    echo
-    cat "$tmp"
-    exit 1
-fi
-
-grep -n ".\{80\}" $pythonfiles | grep -v 'http://' > "$tmp"
-if [ "`cat $tmp`" != "" ]
-then
-    echo "pre-commit: No commit made."
-    echo "There is Python code that is longer than 80 lines:"
-    echo
-    cat "$tmp"
+    cat $error_file
     exit 1
 fi
 
 rm "$tmp"
+rm "$error_file"
