@@ -1,9 +1,5 @@
 #!/usr/bin/python
 
-# Usage:
-#
-# showcommit <commit>
-
 from __future__ import with_statement
 import re
 import os
@@ -11,6 +7,11 @@ import tempfile
 import sys
 import subprocess
 
+def print_help():
+    print """\
+Usage:
+    showcommit <commit>
+"""
 
 class FileModification(object):
     
@@ -135,4 +136,7 @@ def main(commit):
     subprocess.call(command)
 
 if __name__ == '__main__':
+    if (len(sys.argv) == 0 or sys.argv[1] in ('-h', '--help')):
+        print_help()
+        sys.exit(0)
     main(sys.argv[1])
