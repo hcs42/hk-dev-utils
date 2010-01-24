@@ -1,0 +1,48 @@
+#!/bin/bash
+
+function print_help
+{
+    cat <<EOF
+hk_pylint
+    Checks the given source file with pylint. Some warnings are ignored and not
+    printed.
+Usage:
+    hk_pylint [OPTION]... [SOURCE FILE]...
+Options:
+    -h, --help: This help
+    --no-color: No colored output
+EOF
+}
+
+color_arg="--output=colorized"
+go=true
+while $go
+do
+    case "$1" in
+        -h|--help)
+            print_help
+            exit
+            break;;
+        --no-color)
+            color_arg=""
+            shift
+            break;;
+        *)
+            go=false
+            break;;
+    esac
+done
+
+if [ "$1" = "" ]
+then
+    echo "Error: No source file given!"
+    exit
+fi
+
+dontcare=C0103,W0603,C0302,W0511,W0142,R0902,R0903,R0904,R0912,R0913,R0914,R0201,W0141
+notnow=,W0621,C0111,W0212,W0622,W0201,W0612,W0702,W0102,E1101,W0122,W0601,R0801
+
+pylint $color_arg \
+       --reports=n \
+       --include-ids=y \
+       --disable-msg=$dontcare$notnow "$@" 2>&1 | sed '/^Exc/d'
