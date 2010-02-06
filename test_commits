@@ -1,0 +1,26 @@
+#!/bin/bash
+
+function print_help
+{
+    cat <<EOF
+Usage: test_commits [COMMIT]...
+  Checks out the commits and tests them with './test.py'.
+
+Options:
+  -h, --help            show this help message and exit
+EOF
+}
+
+case $1 in
+    -h|--help)
+        print_help
+        exit 0
+        ;;
+esac
+
+for commit in "$@"
+do
+    git checkout "$commit"
+    rm -rf *.pyc
+    ./test.py
+done
