@@ -7,9 +7,25 @@ import hkcustomlib
 import hkutils
 import optparse
 import os
+import re
 import shutil
 import subprocess
 import sys
+
+def call(cmd):
+    w = sys.stdout.write
+    w('cmd: ')
+
+    for arg in cmd:
+        # we put `arg` between quotes if contains any character like space that
+        # is not mentioned here
+        if re.match('^[-_a-zA-Z0-9./+=:]+$', arg):
+            w(arg)
+        else:
+            w("'%s'" % arg)
+        w(' ')
+    print
+    subprocess.call(cmd)
 
 def make_html(commit, options):
     os.mkdir(os.path.join('testhtml_results', commit))
@@ -20,12 +36,19 @@ html=testhtml_results/%s/html
 """ % (options.heap_dir, commit)
 
     configfile = os.path.join('testhtml_results', commit, 'cfg.cfg')
+    html_dir = os.path.join('testhtml_results', commit, 'html')
     hkutils.string_to_file(configstr, configfile)
+    os.mkdir(html_dir)
 
-    subprocess.call(['git', 'checkout', commit])
-    subprocess.call(['rm', '-f', '*.pyc'])
+    call(['git', 'checkout', commit])
 
-    subprocess.call([
+    # rm -f *.py[co]
+    compiled_python_modules = \
+        [f for f in os.listdir('.') if re.search(r'\.py[co]$', f)]
+    call(['rm', '-f'] + compiled_python_modules)
+
+    # Executing hh
+    call([
         './hk.py',
         '--configfile=testhtml_results/' + commit + '/cfg.cfg',
         '-c', 'import hkgen',
@@ -106,8 +129,13 @@ def main():
                 'diffs',
                 '%02d_%s_%s' % (i, commits[i], commits[i + 1]))
 
-        output = subprocess.Popen(["diff", "-ur", file1, file2],
-                                  stdout=subprocess.PIPE).communicate()[0]
+        if os.path.exists(file1) and os.path.exists(file2):
+            output = subprocess.Popen(["diff", "-ur", file1, file2],
+                                      stdout=subprocess.PIPE).communicate()[0]
+            if output == '':
+                output = 'No difference.'
+        else:
+            output = 'ERROR diffing %s and %s: file not found' % (file1, file2)
         hkutils.string_to_file(output, output_file)
 
 if __name__ == '__main__':
