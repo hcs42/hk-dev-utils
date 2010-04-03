@@ -5,7 +5,8 @@ function print_help
     cat <<EOF
 hk_pylint
     Checks the given source file with pylint. Some warnings are ignored and not
-    printed.
+    printed. If no source file is given, all Python source files in the git
+    repository will be checked.
 Usage:
     hk_pylint [OPTION]... [SOURCE FILE]...
 Options:
@@ -33,16 +34,19 @@ do
     esac
 done
 
-if [ "$1" = "" ]
+# If no file is specified, we find them
+if [ "$#" = "0" ]
 then
-    echo "Error: No source file given!"
-    exit
+    files="$(git ls-files | grep '^[[:alnum:]_]\+.py$')"
+else
+    files=$@
 fi
 
-dontcare=C0103,W0603,C0302,W0511,W0142,R0902,R0903,R0904,R0912,R0913,R0914,R0201,W0141
+dontcare=C0103,W0603,C0302,W0511,W0142,R0902,R0903,R0904,R0912,R0913,R0914,R0201,W0141,W0108,R0915
 notnow=,W0621,C0111,W0212,W0622,W0201,W0612,W0702,W0102,E1101,W0122,W0601,R0801
+
 
 pylint $color_arg \
        --reports=n \
        --include-ids=y \
-       --disable-msg=$dontcare$notnow "$@" 2>&1 | sed '/^Exc/d'
+       --disable-msg=$dontcare$notnow $files 2>&1 | sed '/^Exc/d'
