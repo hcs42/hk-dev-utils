@@ -1,0 +1,126 @@
+#!/usr/bin/python
+
+"""This module packages the Heapkeeper releases.
+
+Usage:
+    scripts/make_package
+
+Description:
+    The script creates the following files:
+
+        releases/heapkeeper-<version>.tar.gz
+        releases/heapkeeper-<version>.zip
+        releases/heapkeeper-htmldoc-<version>.tar.gz
+        releases/heapkeeper-htmldoc-<version>.zip
+
+    The version is read from the hklib module.
+
+Note:
+    The script should be run from the main Heapkeeper directory.
+"""
+
+import sys
+import optparse
+import os.path
+import tempfile
+import shutil
+import subprocess
+import hklib
+import signal
+
+if len(sys.argv) > 1 and (sys.argv[1] in ['-h', '--help']):
+    sys.stdout.write(__doc__)
+    sys.exit(0)
+
+def call(command):
+
+    # We catch the SIGPIPE signal.
+    #
+    # See http://mail.python.org/pipermail/tutor/2007-October/058066.html for more
+    # explanation.
+    def permit_sigpipe():
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
+
+    print 'Executing command: ', command
+    ret = subprocess.call(command, preexec_fn=permit_sigpipe)
+    if ret != 0:
+        raise Exception, ('Command returned non-zero value.')
+
+def tgz(dir):
+    name = dir + '.tar.gz'
+    call(['tar', 'czf', name, dir])
+    return name
+
+def zip(dir):
+    name = dir + '.zip'
+    call(['zip', '-rq', name, dir])
+    return name
+
+def main():
+    version = hklib.heapkeeper_version
+
+    hkdir = os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
+    #hkdir = os.getcwd()
+    hkdir_name = os.path.basename(hkdir)
+    print 'Original Heapkeeper directory:', hkdir
+    old_cwd = os.getcwd()
+    tempdir = tempfile.mkdtemp()
+    print 'Temporary directory: ',tempdir
+
+    # hkdir2: the temporary heapkeeper directory
+    hkdir2_name = 'heapkeeper-'+version
+    hkdir2 = os.path.join(tempdir, hkdir2_name)
+    # hkdir2doc: the temporary heapkeeper documentation directory
+    hkdir2doc_name = 'heapkeeper-htmldoc-'+version
+    hkdir2doc = os.path.join(tempdir, hkdir2doc_name)
+
+    try:
+
+        print 'Cloning the git repository...'
+
+        # cloning the repo into tempdir/<hkdir_name>
+        os.chdir(tempdir)
+        call(['git', 'clone', hkdir])
+        
+        print 'Creating source archives...'
+
+        # renaming tempdir/<hkdir_name> to tempdir/<hkdir2_name>
+        shutil.move(os.path.join(tempdir, hkdir_name), hkdir2)
+
+        # removing <hkdir2>/.git
+        shutil.rmtree(os.path.join(hkdir2, '.git'))
+        shutil.rmtree(os.path.join(hkdir2, 'scripts'))
+        os.remove(os.path.join(hkdir2, '.gitignore'))
+
+        tgz1 = tgz(hkdir2_name)
+        zip1 = zip(hkdir2_name)
+
+        print 'Generating Sphinx documentation...'
+
+        os.chdir(os.path.join(hkdir2, 'doc'))
+        call(['make', 'html'])
+
+        print 'Creating HTML documentation archives...'
+
+        os.chdir(tempdir)
+        shutil.copytree(os.path.join(hkdir2, 'doc', '_build', 'html'),
+                        hkdir2doc)
+        tgz2 = tgz(hkdir2doc_name)
+        zip2 = zip(hkdir2doc_name)
+
+        releases_dir = os.path.join(hkdir, 'releases')
+        print 'Copying the archive files to "%s"...' % (releases_dir,)
+        
+        if not os.path.exists(releases_dir):
+            os.mkdir(releases_dir)
+
+        shutil.copy(tgz1, releases_dir)
+        shutil.copy(zip1, releases_dir)
+        shutil.copy(tgz2, releases_dir)
+        shutil.copy(zip2, releases_dir)
+
+    finally:
+        os.chdir(old_cwd)
+        shutil.rmtree(tempdir)
+
+main()

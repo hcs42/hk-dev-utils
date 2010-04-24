@@ -1,0 +1,29 @@
+#!/bin/sh
+
+if [ "$1" = "-h" -o "$1" = "--help" ];
+then
+    cat <<END
+pushrelease <username>
+
+Description:
+    Copies the packaged releases of Heapkeeper to
+    heapkeeper.org/releases.
+
+Usage:
+    First run scripts/make_package to create the release packages. Then run
+    scripts/pushrelease without arguments and type the hste.uw.hu password.
+
+Prerequitites:
+    This script needs the ncftp program (which contains the ncftpput command).
+    In Ubuntu, just install the ncftp package.
+
+Note:
+    You can run the script from any directory, it will work. (Unless you copy
+    the script itself to somewhere else, in which case it will not.)
+END
+exit
+fi
+
+dir=`dirname "$0"`
+echo "heapkeeper.org password:"
+ncftpput -R -u "$1" ftp.heapkeeper.org htdocs/releases "$dir"/../releases/*
