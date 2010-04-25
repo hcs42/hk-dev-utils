@@ -18,12 +18,10 @@ Prerequitites:
     In Ubuntu, just install the ncftp package.
 
 Note:
-    You can run the script from any directory, it will work. (Unless you copy
-    the script itself to somewhere else, in which case it will not.)
+    The script works only from Heapkeeper's main directory.
 END
 exit
 fi
 
-dir=`dirname "$0"`
 echo "heapkeeper.org password:"
-ncftpput -R -u "$1" ftp.heapkeeper.org htdocs/releases "$dir"/../releases/*
+ncftpput -R -u "$1" ftp.heapkeeper.org htdocs/releases releases/*
