@@ -22,7 +22,7 @@ function check_trailing_whitespace
 
 function check_long_lines
 {
-    grep -n ".\{82\}" $pythonfiles | grep -v 'http://' > "$tmp"
+    grep -n ".\{80\}" $pythonfiles | grep -v 'http://' > "$tmp"
     if [ "`cat $tmp`" != "" ]
     then
         echo
