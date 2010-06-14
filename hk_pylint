@@ -37,11 +37,17 @@ done
 # If no file is specified, we find them
 if [ "$#" = "0" ]
 then
-    files="$(git ls-files | grep '^[[:alnum:]_]\+.py$')"
+    files="$(git ls-files | grep '^\(plugins/.\+/\)\?src/[[:alnum:]_]\+.py$')"
 else
     files=$@
 fi
 
+python_dirs=$(echo $files |
+              xargs -d ' ' -I XX dirname XX |
+              sort | uniq |
+              sed -n ':a;N;${s/\n/:/g;p};ba')
+
+export PYTHONPATH="$python_dirs:$PYTHONPATH"
 pylint $color_arg \
        --reports=n \
        --include-ids=y \
