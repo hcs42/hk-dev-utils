@@ -81,7 +81,7 @@ def main():
         # cloning the repo into tempdir/<hkdir_name>
         os.chdir(tempdir)
         call(['git', 'clone', hkdir])
-        
+
         print 'Creating source archives...'
 
         # renaming tempdir/<hkdir_name> to tempdir/<hkdir2_name>
@@ -89,7 +89,6 @@ def main():
 
         # removing <hkdir2>/.git
         shutil.rmtree(os.path.join(hkdir2, '.git'))
-        shutil.rmtree(os.path.join(hkdir2, 'scripts'))
         os.remove(os.path.join(hkdir2, '.gitignore'))
 
         tgz1 = tgz(hkdir2_name)
@@ -110,7 +109,7 @@ def main():
 
         releases_dir = os.path.join(hkdir, 'releases')
         print 'Copying the archive files to "%s"...' % (releases_dir,)
-        
+
         if not os.path.exists(releases_dir):
             os.mkdir(releases_dir)
 
