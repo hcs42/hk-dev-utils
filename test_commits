@@ -22,6 +22,6 @@ for commit in "$@"
 do
     git checkout "$commit"
     rm -rf *.pyc
-    ./test.py
+    src/test.py
     hk-dev-utils/hk_pylint
 done
