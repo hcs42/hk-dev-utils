@@ -10,7 +10,7 @@ error_file=`tempfile`
 
 function check_trailing_whitespace
 {
-    grep -n " $" *.py doc/*.{rst,py,hrst} > "$tmp"
+    grep -n " $" doc/*.{rst,py,hrst} > "$tmp"
     if [ "`cat $tmp`" != "" ]
     then
         echo
