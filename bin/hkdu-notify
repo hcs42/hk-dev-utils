@@ -1,0 +1,112 @@
+#!/usr/bin/python
+
+# This file is part of Heapkeeper Development Utilities (hkdu).
+#
+# hkdu is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# hkdu is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# hkdu.  If not, see <http://www.gnu.org/licenses/>.
+
+# Copyright (C) 2010 Csaba Hoch
+
+"""Notifies the user about the result of a test."""
+
+
+import sys
+import os
+import logging
+import optparse
+import pynotify
+import subprocess
+import tempfile
+
+import hkdu_utils
+import hkutils
+import hkcustomlib
+
+
+logger = logging.getLogger('hkdu-notify')
+USAGE = '''\
+usage: hkdu-notify [options]
+'''
+
+def parse_args():
+    parser = optparse.OptionParser(usage=USAGE)
+    hkdu_utils.add_logging_options(parser)
+    parser.add_option('--latestresult', dest='latest_result',
+                     help='When to write the result into the '
+                     '~/.hk-dev-utils/latest_result file (pass, fail, never, '
+                     'always)',
+                     action='store', default='fail')
+    parser.add_option('--osdnotif', dest='osd_notification',
+                     help='When to show OSD notification (pass, fail, never, '
+                     'always)',
+                     action='store', default='always')
+    parser.add_option('--osdnotif-inline', dest='osdnotification_inline',
+                     help='The body of the report will be put into the OSD '
+                     'notification if specified',
+                     action='store_true', default=False)
+    parser.add_option('--popup', dest='popup',
+                     help='When to show popup (pass, fail, never, always)',
+                     action='store', default='fail')
+    parser.add_option('--popupcmd', dest='popup_command',
+                     help='Which command to use for the popup (e.g. "gvim", '
+                     '"xmessage -file"', action='store',
+                     default=r'gvim -c map\ q\ :q<cr> '
+                     r'-c set\ titlestring=test\\\ failed')
+    (cmdl_options, args) = parser.parse_args()
+    return cmdl_options, args
+
+def main(options, args):
+
+    hkdu_utils.start_logging(options)
+    res = sys.stdin.read()
+
+    if res == '':
+        show_list = ('pass', 'always')
+        caption = 'hkdu: test passed'
+        report = caption
+    else:
+        show_list = ('fail', 'always')
+        caption = 'hkdu: test failed'
+        report = caption + '\n\n' + res
+
+    # Create a file in .hk-dev-utils/testresults/
+    hkdu_dir = hkdu_utils.create_get_hkdu_dir()
+    result_dir = os.path.join(hkdu_dir, 'testresults')
+    latest_result_file = hkdu_utils.mkstemp(prefix='', dir=result_dir)
+    hkutils.string_to_file(report, latest_result_file)
+
+    # gvim, xmessage, etc.
+    if options.popup in show_list:
+        cmd = hkcustomlib.editor_to_editor_list(options.popup_command)
+        subprocess.Popen(cmd + [latest_result_file])
+
+    # OSD notification
+    if options.osd_notification in show_list:
+        if res == '':
+            icon = 'notification-gpm-brightness-kbd'
+            pynotify.init('icon-summary')
+            pynotify.Notification(caption, '', icon).show()
+        else:
+            # We don't display the report itself
+            msg_list = []
+            if latest_result_file is not None:
+                msg_list.append('See the results in ' + latest_result_file)
+            if options.osdnotification_inline:
+                msg_list.append(res.strip())
+            msg = '\n\n'.join(msg_list)
+            icon = 'notification-gpm-brightness-kbd-invalid'
+            pynotify.init('icon-summary')
+            pynotify.Notification(caption, msg, icon).show()
+
+
+if __name__ == '__main__':
+    main(*parse_args())

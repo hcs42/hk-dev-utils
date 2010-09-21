@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# This file is part of Heapkeeper Development Utilities (hkdu).
+#
+# hkdu is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# hkdu is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# hkdu.  If not, see <http://www.gnu.org/licenses/>.
+
+# Copyright (C) 2010 Csaba Hoch
+
+# This script is a git pre-commit hook. It can be activated by being copied
+# into heapkeeper/.git/hooks/pre-commit. It will not allow to commit if the
+# source files in the working tree do not conform to the most simple coding
+# conventions (maximum line length, no trailing whitespace, no trailing line).
+#
+# This scrips could easily execute other tests like unittest and pylint. It does
+# not do that for several reasons:
+# - It would not be accurate, because these tests do not run on the version to
+#   be checked in but on the working tree. So for example if you modify two
+#   files, but are about to commit only one of them, the newer versions of both
+#   files will be tested by this hook. The post hook does not have this problem,
+#   because the post hook can just clone the repository, checkout HEAD and do
+#   the tests on that.
+# - It would take longer; especially pylint, which runs for 11 seconds for me,
+#   and waiting 11 seconds before each commit would be quite annoying. Executing
+#   unittest is about 2 seconds. This pre-hook runs for half a second. The post
+#   hook does not have this problem, because that is asynchronous; so the
+#   developer can continue their work and will receive the results later (e.g.
+#   in a notification bubble and/or a popup window).
+# - It is not unusual in git that developers commit temporary, dirty commits
+#   that they intend to rebase later; preventing these commits would be quite
+#   annoying for these developers. The post hook does not have this problem,
+#   because that does not prevent the commit, only reports the errors
+#   afterwards.
+#
+# That said, if you copy this file into heapkeeper/.git/commit/hook, you can
+# modify it to suit your needs and workflow: you may want to execute the
+# unittests for example too.
+
+if [ "$1" = "-h" -o "$1" = "--help" ]
+then
+    echo "This is a commit hook; please read the README on how to use it."
+    exit 0
+fi
+
+res=$(hkdu-test -t linelength:trailingwhitespace:trailingline)
+
+if [ "$res" == "" ]
+then
+    # No errors found
+    exit 0
+else
+    # Errors reported
+    echo "$res"
+    exit 1
+fi

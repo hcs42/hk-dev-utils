@@ -1,0 +1,52 @@
+#!/usr/bin/python
+
+# This file is part of Heapkeeper Development Utilities (hkdu).
+#
+# hkdu is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# hkdu is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# hkdu.  If not, see <http://www.gnu.org/licenses/>.
+
+# Copyright (C) 2010 Csaba Hoch
+
+"""This script lists the Heapkeeper source files."""
+
+
+import sys
+import os
+import logging
+import optparse
+
+import hkdu_utils
+
+
+logger = logging.getLogger('hkdu-list-sources')
+USAGE = '''\
+usage: hkdu-list-sources [options]
+
+    List the Heapkeeper source files. It will not list image files.
+'''
+
+def parse_args():
+    parser = optparse.OptionParser(usage=USAGE)
+    hkdu_utils.add_testing_options(parser)
+    hkdu_utils.add_logging_options(parser)
+    (cmdl_options, args) = parser.parse_args()
+    return cmdl_options, args
+
+def main(options, args):
+
+    hkdu_utils.start_logging(options)
+
+    for file in hkdu_utils.git_source_files():
+        print file
+
+if __name__ == '__main__':
+    main(*parse_args())

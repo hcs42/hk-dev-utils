@@ -1,0 +1,82 @@
+#!/usr/bin/python
+
+# This file is part of Heapkeeper Development Utilities (hkdu).
+#
+# hkdu is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# hkdu is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# hkdu.  If not, see <http://www.gnu.org/licenses/>.
+
+# Copyright (C) 2010 Csaba Hoch
+
+"""This script tests the given commits in a temporary Heapkeeper repository."""
+
+
+import logging
+import optparse
+import os
+import re
+import sys
+import tempfile
+
+import hkdu_utils
+import hkdu_errmsg
+
+
+logger = logging.getLogger('hkdu-testcommit')
+RETURN_CODES = {'test': 1}
+USAGE = '''\
+usage: hkdu-testcommit [options] COMMIT...
+
+    Tests the given commits in a temporary Heapkeeper repository.'''
+
+def parse_args():
+    parser = optparse.OptionParser(usage=USAGE)
+    remove_lock_help = \
+        ('''If specified, the script removes the repository lock when it does
+         not use the original Heapkeeper repository any more, i.e. between
+         cloning it and performing the tests on the temporary commits.''')
+    remove_lock_help = re.sub('\\s+', ' ', remove_lock_help)
+    parser.add_option('--remove-lock', dest='remove_lock',
+                      help=remove_lock_help, action='store_true',
+                      default=False)
+    hkdu_utils.add_testing_options(parser)
+    hkdu_utils.add_logging_options(parser)
+    (cmdl_options, args) = parser.parse_args()
+
+    if len(args) == 0:
+        print hkdu_errmsg.NO_COMMIT_SPECIFIED
+        sys.exit(1)
+
+    return cmdl_options, args
+
+
+def main(options, args):
+
+    try:
+        hkdu_utils.start_logging(options)
+        hkdu_utils.init_sha_length(options)
+        commits = hkdu_utils.expand_commit_list(args)
+        hkdu_utils.check_heapkeeper_dir()
+        hkdu_utils.set_up_tmp_dir(options.tmp_dir)
+
+        logger.info('Setting up the repository...')
+        hk_tmp_dir = os.path.join(hkdu_utils.tmp_dir, 'heapkeeper')
+        hkdu_utils.git_clone_if_needed(hkdu_utils.get_heapkeeper_dir(), hk_tmp_dir)
+        os.chdir(hk_tmp_dir)
+    finally:
+        if options.remove_lock:
+            hkdu_dir = hkdu_utils.create_get_hkdu_dir()
+            os.remove(os.path.join(hkdu_dir, 'repository.lock'))
+
+    hkdu_utils.test_commits(commits, options.tests, options.inline)
+
+if __name__ == '__main__':
+    main(*parse_args())

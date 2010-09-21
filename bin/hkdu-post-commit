@@ -1,0 +1,139 @@
+#!/bin/bash
+
+# This file is part of Heapkeeper Development Utilities (hkdu).
+#
+# hkdu is free software: you can redistribute it and/or modify it under the
+# terms of the GNU General Public License as published by the Free Software
+# Foundation, either version 3 of the License, or (at your option) any later
+# version.
+#
+# hkdu is distributed in the hope that it will be useful, but WITHOUT ANY
+# WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+# A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License along with
+# hkdu.  If not, see <http://www.gnu.org/licenses/>.
+
+# Copyright (C) 2010 Csaba Hoch
+
+# This script is a git post-commit hook. It can be activated by being copied
+# into heapkeeper/.git/hooks/post-commit. It executes all available tests on the
+# created commit asynchronously.
+#
+# By default, the user will be notified about the results by a notification
+# bubble, and a window will pop up with the errors if any test failed. This
+# behavior can be changed by invoking hkdu-testcommit and hkdu-notify with
+# different parameters. See "hkdu-testcommit --help" and "hkdu-notify --help"
+# for more information.
+#
+# The error messages and printouts regarding the execution of the commit hook
+# will be printed into the shell from which the commit was issued. These include
+# the log printouts (error/warning/info/debug) of hkdu-testcommit and
+# hkdu-notify, and the stack trace of the exceptions raised in them; but it does
+# not include any test result like the reports about test failures.
+
+function run_test
+{
+    # We supply the --remove-lock parameter so that hkdu-testcommit will remove
+    # the lock file after it had finished cloning the original repository
+    hkdu-testcommit --remove-lock HEAD | hkdu-notify
+}
+
+function run_command_in_the_background
+    # $1: command to be run in the background
+{
+    # It is really strange, but the usual "command args &" does not work in case
+    # of interactive git rebase. When doing interactive git rebase, git will
+    # wait the popped up editor window (not this gvim but the gvim started by
+    # hkdu-notification!) to be closed, and will continue only afterwards.
+    # I have no idea why that is, and I have even less idea why this gvim-hack
+    # works. The only thing I can think of is that the interactive git rebase
+    # intentionally keeps track of all its descendant processes and will wait
+    # for all of them to finish, and it won't be fooled by starting a process
+    # with "&", but will be fooled by starting it through gvim.
+    #
+    # Another problem with this solution (beside its ugliness) is that error
+    # messages are not printed (they are destroyed when gvim exits). So if you
+    # have problems with the commit hook, comment the gvim-line and uncomment
+    # the line below that. Then the error messages will be printed to the
+    # console.
+
+    gvim -u NONE -U NONE --noplugins -c 'set nocp' -c '!'"$1" -c 'q!'
+    #$1 &
+}
+
+if [ "$1" = "-h" -o "$1" = "--help" ]
+then
+    echo "This is a commit hook; please read the README on how to use it."
+    exit 0
+elif [ "$1" = run_test ]
+then
+    run_test
+else
+
+    # This post-commit hook uses a lock to avoid certain race conditions.
+    # Imagine that you are committing a file. The post-commit hook fires up, and
+    # it tries to clone the repository into a temporary directory (this usually
+    # takes a few seconds, but it may take more than one minute at the first
+    # time when the files of the $HEAPKEEPER_DEV_DIR/.git directory are not in
+    # the OS cache) and check out the HEAD so that it can perform the tests on
+    # the Heapkeeper version in the temporary directory. If you change the
+    # repository state (by committing, rebasing, checking out, etc.) during this
+    # clone period, bad things will happen in the running clone operation: for
+    # example if you have committed something, the new commit will probably be
+    # cloned as well, and that will be the HEAD in the cloned repository, so the
+    # tests will run on that commit instead of the one for which the hook was
+    # called. This situation will almost certainly occur and lead to trouble
+    # when we are doing an interactive rebase, because then git will
+    # automatically apply a bunch of commits just right after each other.
+    #
+    # To avoid this situation, the post-commit hook will only terminate after
+    # the clone operation has been finished. Performing the tests will begin
+    # just now, but from this point, all tests will be run on the repository in
+    # the temporary directory which will not be used by anyone else.
+
+    # This example that shows what race conditions can occur:
+    #
+    # These bash lines can trigger the race conditions:
+    #
+    #     cd "$HEAPKEEPER_DEV_DIR"
+    #     (sleep 1; echo 'x' >>README; git commit -am "new commit") &
+    #     cd $(mktemp -d)
+    #     git clone "$HEAPKEEPER_DEV_DIR" tmp-hk-repo
+    #     cd tmp-hk-repo
+    #     git log -n1 -p
+    #
+    # One possible result is that the last line will show that the temporary
+    # repository has the new commit as HEAD.
+    #
+    # Another possible result is that git will print out something like this:
+    #
+    #     Initialized empty Git repository in /tmp/tmp.Qc4CNntM5m/tmp-hk-repo/.git/
+    #     [my_test_git_branch 350ed02] new commit
+    #      1 files changed, 1 insertions(+), 0 deletions(-)
+    #     error: refs/remotes/origin/my_test_git_branch does not point to a valid object!
+    #     error: Trying to write ref refs/heads/my_test_git_branch with nonexistant object 350ed02d13806e3f616c32294ef4f4f149394785
+    #     fatal: Cannot update the ref 'HEAD'.
+    #     [1]+  Done                    ( sleep 2; echo 'x' >> README; git commit -am "new commit" )  (wd: /a/cp/hk/hk)
+    #     (wd now: /tmp/tmp.Qc4CNntM5m)
+
+    # Creating a lock
+    mkdir -p "$HOME/.hk-dev-utils/"
+    touch "$HOME/.hk-dev-utils/repository.lock"
+
+    # We execute the test; we supply the --remove-lock parameter to the
+    # hkdu-testcommit script so that it will remove the lock file after it had
+    # finished cloning the original repository
+    run_command_in_the_background "$0 run_test &"
+    echo "hkdu: tests started..."
+
+    # Waiting for the lock; not because the post-commit hook needs it but
+    # because we don't want to give back the control to git while the
+    # hkdu-testcommit may still use the main Heapkeeper repository
+    while [ -e "$HOME/.hk-dev-utils/repository.lock" ]
+    do
+        sleep 1
+    done
+
+    echo "hkdu: test moved into the background."
+fi

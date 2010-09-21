@@ -3,7 +3,7 @@
 """This module packages the Heapkeeper releases.
 
 Usage:
-    scripts/make_package
+    hkdu-make-package
 
 Description:
     The script creates the following files:
