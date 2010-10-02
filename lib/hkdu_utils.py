@@ -70,7 +70,10 @@ def bash_escape(s):
     else:
         return("'%s'" % s)
 
-def call(cmd, return_value='status'):
+class CallResult(object):
+    pass
+
+def call(cmd, return_value='status', merge=True):
     logger.debug('Calling external command...')
 
     log = ['Command to be executed:']
@@ -85,7 +88,17 @@ def call(cmd, return_value='status'):
     PIPE = subprocess.PIPE
     STDOUT = subprocess.STDOUT
 
-    if return_value == 'status':
+    if return_value == 'object':
+        stderr = (STDOUT if merge else PIPE)
+        popen = Popen(cmd, stdout=PIPE, stderr=STDOUT)
+        popen.wait()
+        result = CallResult()
+        result.returncode = popen.returncode
+        (stdoutdata, stderrdata) = popen.communicate()
+        result.stdoutdata = stdoutdata
+        result.stderrdata = stderrdata
+        return result
+    elif return_value == 'status':
         return sp_call(cmd)
     elif return_value == 'status+infolog':
         popen = Popen(cmd, stdout=PIPE, stderr=STDOUT)
