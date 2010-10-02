@@ -507,3 +507,17 @@ def trailingline_tester():
     # We can't decide whether the tests passed or failed; the user has to do
     # that by looking at the opened browser.
     return (True, '')
+
+@tester_fun(testname='makedoc')
+def unittest_tester():
+    """Executes "make" in the documentation directory of Heapkeeper."""
+
+    old_dir = os.getcwd()
+    os.chdir('doc')
+    res = call(['make', 'clean'], return_value='object')
+    assert res.returncode == 0
+    res = call(['make', 'strict'], return_value='object')
+    passed = (res.returncode == 0)
+    os.chdir(old_dir)
+    return (passed, res.stdoutdata)
+
