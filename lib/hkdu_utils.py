@@ -521,3 +521,54 @@ def unittest_tester():
     os.chdir(old_dir)
     return (passed, res.stdoutdata)
 
+@tester_fun(testname='commitlog')
+def unittest_tester():
+    """Checks the log of the last commit.
+
+    The following things are checked:
+
+    - The first line of the commit log is not longer than 50 characters.
+    - The second line of the commit log is empty.
+    - The third line of the commit log is written between square brackets.
+    - If there is a fourth line, it should be empty.
+    """
+
+    res = call(['git', 'log', '-n1'], return_value='object')
+    assert res.returncode == 0
+    lines = get_lines(res.stdoutdata)
+
+    # Removing the header lines
+    commit_log_lines = []
+    in_commit_log = False  # we have reached the commit log
+    for line in lines:
+        if in_commit_log:
+            commit_log_lines.append(line)
+        elif line == '':
+            in_commit_log = True
+    lines = commit_log_lines
+
+    # Removing indentation from each line
+    lines = [line[4:] for line in lines]
+
+    errors = []
+    if len(lines) < 3:
+        errors.append('Too few lines.')
+    elif len(lines[0]) > 50:
+        errors.append('First line too long.')
+    elif len(lines[1]) > 0:
+        errors.append('Second line should be empty.')
+    elif not ((len(lines[2]) > 3) and
+              (lines[2][0] == '[') and
+              (lines[2][-1] == ']')):
+        errors.append('The commit topic is not correct.')
+    elif (len(lines) >= 4 and lines[3] != ''):
+        errors.append('Line 4 should be empty.')
+
+    if errors == []:
+        passed = True
+        result = res.stdoutdata
+    else:
+        passed = False
+        errors = ''.join(errors) + '\n\n' + res.stdoutdata
+    return (passed, errors)
+
