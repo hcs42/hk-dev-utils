@@ -228,6 +228,11 @@ OTHER ASPECTS
   cannot just remove them from Heapkeeper without deprecating them through a
   release).
 
+- Compatibility between hk-dev-utils and Heapkeeper versions: hk-dev-utils does
+  not have releases and version numbers. The The compatibility between
+  different versions of hk-dev-utils and Heapkeeper is described in
+  doc/heapkeeper-compatibility.txt.
+
 TODO
 ====
 
