@@ -27,9 +27,9 @@ import shutil
 import subprocess
 import signal
 
-sys.path.append('src')
-
+import hkdu_utils
 import hklib
+
 
 if len(sys.argv) > 1 and (sys.argv[1] in ['-h', '--help']):
     sys.stdout.write(__doc__)
@@ -60,10 +60,11 @@ def zip(dir):
     return name
 
 def main():
+    hkdu_utils.check_heapkeeper_dir()
+
     version = hklib.heapkeeper_version
 
-    hkdir = os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
-    #hkdir = os.getcwd()
+    hkdir = hkdu_utils.get_heapkeeper_dir()
     hkdir_name = os.path.basename(hkdir)
     print 'Original Heapkeeper directory:', hkdir
     old_cwd = os.getcwd()
