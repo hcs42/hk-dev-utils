@@ -421,8 +421,8 @@ def pylint_tester():
     os.environ['PYTHONPATH'] = python_path
 
     # Calling pylint
-    res = call(['pylint', '--reports=n', '--include-ids=y'] +
-                #(['--output=colorized'] if output_colorized else []) +
+    res = call(['pylint', '--reports=n', '--include-ids=y',
+                '--rcfile=etc/pylintrc'] +
                 python_files,
                 return_value='stdout+stderr')
 

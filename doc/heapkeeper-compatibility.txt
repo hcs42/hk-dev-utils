@@ -8,5 +8,5 @@ v0.8+. Since major refactorings are done right after a release, almost all
 commits of v0.8+ will be more similar to v0.9 architecturally than to v0.8.
 
 Compatbility table:
-- Heapkeeper v0.8: a1fba4b..HEAD
-- Heapkeeper v0.8+: a1fba4b..HEAD
+- Heapkeeper v0.8: a1fba4b..5942fc2
+- Heapkeeper v0.8+:
