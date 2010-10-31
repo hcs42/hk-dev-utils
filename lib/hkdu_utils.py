@@ -479,7 +479,7 @@ def trailingline_tester():
     return (bad_files == [], ''.join(bad_files_2))
 
 @tester_fun(testname='javascript')
-def trailingline_tester():
+def javascript_tester():
     # Current directory should be: Heapkeeper
 
     # This test will have problems when more than one wants to run at the same
