@@ -183,7 +183,6 @@ def git_python_files():
     all_files = git_all_files()
     python_files = []
     for file in all_files:
-        #if re.search('^(plugins/.+/)?src/[A-Za-z0-9_]+.py$', file):
         if re.search('\.py$', file):
             python_files.append(file)
     return python_files
