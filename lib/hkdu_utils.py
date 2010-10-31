@@ -176,7 +176,7 @@ def git_all_files():
     # Current directory should be: Heapkeeper
     res = call(['git', 'ls-files'], 'stdout')
     files = get_lines(res)
-    return [file for file in files if file != '']
+    return [file for file in files if file != '' and os.path.isfile(file)]
 
 def git_python_files():
     # Current directory should be: Heapkeeper
