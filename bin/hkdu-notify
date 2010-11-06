@@ -29,7 +29,6 @@ import tempfile
 
 import hkdu_utils
 import hkutils
-import hkcustomlib
 
 
 logger = logging.getLogger('hkdu-notify')
@@ -86,7 +85,7 @@ def main(options, args):
 
     # gvim, xmessage, etc.
     if options.popup in show_list:
-        cmd = hkcustomlib.editor_to_editor_list(options.popup_command)
+        cmd = hkdu_utils.editor_to_editor_list(options.popup_command)
         subprocess.Popen(cmd + [latest_result_file])
 
     # OSD notification

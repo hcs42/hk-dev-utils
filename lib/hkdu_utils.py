@@ -34,6 +34,7 @@ import hkdu_errmsg
 sys.path.append(os.path.join(os.getenv('HEAPKEEPER_DEV_DIR'), 'src'))
 
 import hkutils
+import hkshell
 
 
 ##### Global variables #####
@@ -120,6 +121,39 @@ def mkstemp(*args, **kw):
     fd, filename = tempfile.mkstemp(*args, **kw)
     os.close(fd)
     return filename
+
+def import_module(modname):
+    """Imports a given module.
+
+    **Argument:**
+
+    - `modname` (str)
+
+    **Returns:** module | ``None`` --  returns ``None`` if the module was not
+    found.
+    """
+
+    try:
+        return __import__(modname)
+    except ImportError, e:
+        if str(e) == ('No module named ' + modname):
+            return None
+        else:
+            exc_info = sys.exc_info()
+            raise exc_info[0], exc_info[1], exc_info[2]
+
+editor_to_editor_list_fun = None
+
+def editor_to_editor_list(editor):
+    global editor_to_editor_list_fun
+    if editor_to_editor_list_fun is None:
+        hkcustomlib = import_module('hkcustomlib')
+        if hkcustomlib is not None:
+            editor_to_editor_list_fun = hkcustomlib.editor_to_editor_list
+        else:
+            editor_to_editor_list_fun = hkshell.editor_to_editor_list
+    return editor_to_editor_list_fun(editor)
+
 
 ##### git utility functions #####
 
