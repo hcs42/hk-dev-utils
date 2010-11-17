@@ -91,7 +91,7 @@ def call(cmd, return_value='status', merge=True):
 
     if return_value == 'object':
         stderr = (STDOUT if merge else PIPE)
-        popen = Popen(cmd, stdout=PIPE, stderr=STDOUT)
+        popen = Popen(cmd, stdout=PIPE, stderr=stderr)
         popen.wait()
         result = CallResult()
         result.returncode = popen.returncode
