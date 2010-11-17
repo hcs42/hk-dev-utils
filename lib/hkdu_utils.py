@@ -542,7 +542,7 @@ def javascript_tester():
     return (True, '')
 
 @tester_fun(testname='makedoc')
-def unittest_tester():
+def makedoc_tester():
     """Executes "make" in the documentation directory of Heapkeeper."""
 
     old_dir = os.getcwd()
@@ -555,7 +555,7 @@ def unittest_tester():
     return (passed, res.stdoutdata)
 
 @tester_fun(testname='commitlog')
-def unittest_tester():
+def commitlog_tester():
     """Checks the log of the last commit.
 
     The following things are checked:
