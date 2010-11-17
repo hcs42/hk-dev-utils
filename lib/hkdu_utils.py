@@ -511,10 +511,7 @@ def trailingline_tester():
     bad_files_2 = [file + '\n' for file in bad_files]
     return (bad_files == [], ''.join(bad_files_2))
 
-@tester_fun(testname='javascript')
-def javascript_tester():
-    # Current directory should be: Heapkeeper
-
+def javascript_tester_old():
     # This test will have problems when more than one wants to run at the same
     # time, because the second one will not be able to reserve port 8081.
 
@@ -540,6 +537,49 @@ def javascript_tester():
     # We can't decide whether the tests passed or failed; the user has to do
     # that by looking at the opened browser.
     return (True, '')
+
+def javascript_tester_jstestdriver():
+    hk_dir = get_heapkeeper_dir()
+    jtd_path = os.path.join(hk_dir, 'external', 'JsTestDriver.jar')
+    jtd_config = os.path.join('etc', 'jsTestDriver', 'jsTestDriver.conf')
+    if not os.path.exists(jtd_path):
+        error = hkdu_errmsg.JS_TEST_DRIVER_NO_JAR % (jtd_path,)
+        return (False, error)
+
+    res = call(['java', '-jar', jtd_path, '--tests',
+                'all', '--config', jtd_config],
+                return_value='object')
+
+    if re.match('^.*Connection refused', res.stdoutdata):
+        error = hkdu_errmsg.JS_TEST_DRIVER_SERVER_NOT_RUNNING % res.stdoutdata
+        return (False, error)
+    elif re.match('^java.lang.RuntimeException: No browsers available',
+                   res.stdoutdata):
+        error = hkdu_errmsg.JS_TEST_DRIVER_NO_BROWSER % res.stdoutdata
+        return (False, error)
+
+    r = re.search(r'^Total .*Passed: (\d+); Fails: (\d+); Errors: (\d+)\)',
+                  res.stdoutdata, re.MULTILINE)
+    if r is None:
+        error = hkdu_errmsg.JS_TEST_DRIVER_UNRECOGNIZED_OUTPUT % res.stdoutdata
+        return (False, error)
+
+    passed_count = int(r.group(1))
+    fail_count = int(r.group(2))
+    error_count = int(r.group(3))
+
+    if (fail_count != 0) or (error_count != 0):
+        return (False, res.stdoutdata)
+
+    return (True, res.stdoutdata)
+
+@tester_fun(testname='javascript')
+def javascript_tester():
+    # Current directory should be: Heapkeeper
+    if os.path.exists(os.path.join('etc', 'jsTestDriver')):
+        return javascript_tester_jstestdriver()
+    else:
+        return javascript_tester_old()
 
 @tester_fun(testname='makedoc')
 def makedoc_tester():
