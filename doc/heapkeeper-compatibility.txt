@@ -10,3 +10,5 @@ commits of v0.8+ will be more similar to v0.9 architecturally than to v0.8.
 Compatbility table:
 - Heapkeeper v0.8: a1fba4b..5942fc2
 - Heapkeeper v0.8+: add6877..HEAD
+- Heapkeeper v0.9: add6877..HEAD
+- Heapkeeper v0.9+: 3e8b6ef..HEAD
