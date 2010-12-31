@@ -22,4 +22,4 @@ exit
 fi
 
 echo "heapkeeper.org password:"
-ncftpput -R -u "$1" ftp.heapkeeper.org htdocs doc/_build/html/*
+ncftpput -R -u "$1" vip2.newhosting.hu htdocs doc/_build/html/*
