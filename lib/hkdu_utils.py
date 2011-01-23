@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License along with
 # hkdu.  If not, see <http://www.gnu.org/licenses/>.
 
-# Copyright (C) 2010 Csaba Hoch
+# Copyright (C) 2010-2011 Csaba Hoch
 
 """Utility module. Should be imported by all hkdu modules because it modifies
 sys.path."""
@@ -261,13 +261,13 @@ def add_testing_options(parser):
          Available tests: ''' + ', '.join(get_tester_names()) +
          '''.  Examples: "unittest:pylint" (perform only these tests),
          "-unittest:pylint" (perform all tests except these), "all" (all
-         available tests). The default value is "-javascript".''')
+         available tests). The default value is "all".''')
     tests_help = re.sub('\\s+', ' ', tests_help)
 
     group = optparse.OptionGroup(parser, 'Testing options')
     group.add_option('-t', '--tests', dest='tests',
                       help=tests_help,
-                      action='store', default='-javascript')
+                      action='store', default='all')
     group.add_option('--tmpdir', dest='tmp_dir',
                       help='Temporary directory to use',
                       action='store')
